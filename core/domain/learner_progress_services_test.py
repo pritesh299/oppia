@@ -981,6 +981,41 @@ class LearnerProgressTests(test_utils.GenericTestBase):
         self.assertEqual(self._get_all_partially_learnt_topic_ids(
             self.user_id), [])
 
+    def test_remove_collection_from_completed_list(self) -> None:
+        self.assertEqual(self._get_all_completed_collection_ids(
+            self.user_id), [])
+
+        # Add two collections to the completed list.
+        learner_progress_services.mark_collection_as_completed(
+            self.user_id, self.COL_ID_0)
+        learner_progress_services.mark_collection_as_completed(
+            self.user_id, self.COL_ID_1)
+        self.assertEqual(self._get_all_completed_collection_ids(
+            self.user_id), [self.COL_ID_0, self.COL_ID_1])
+
+        # Remove one collection.
+        learner_progress_services.remove_collection_from_completed_list(
+            self.user_id, self.COL_ID_0)
+        self.assertEqual(self._get_all_completed_collection_ids(
+            self.user_id), [self.COL_ID_1])
+
+        # Removing the same collection again has no effect.
+        learner_progress_services.remove_collection_from_completed_list(
+            self.user_id, self.COL_ID_0)
+        self.assertEqual(self._get_all_completed_collection_ids(
+            self.user_id), [self.COL_ID_1])
+
+        # Removing another collection.
+        learner_progress_services.remove_collection_from_completed_list(
+            self.user_id, self.COL_ID_1)
+        self.assertEqual(self._get_all_completed_collection_ids(
+            self.user_id), [])
+
+        # Removing a collection with an invalid user id has no effect.
+        self.user_id = 'invalid user id'
+        learner_progress_services.remove_collection_from_completed_list(
+                self.user_id, self.COL_ID_0)
+
     def test_remove_story_from_completed_list(self) -> None:
         self.assertEqual(self._get_all_completed_story_ids(
             self.user_id), [])
@@ -1011,6 +1046,11 @@ class LearnerProgressTests(test_utils.GenericTestBase):
         self.assertEqual(self._get_all_completed_story_ids(
             self.user_id), [])
 
+        # Removing a story with an invalid user id has no effect.
+        self.user_id = 'invalid user id'
+        learner_progress_services.remove_story_from_completed_list(
+                self.user_id, self.STORY_ID_0)
+
     def test_remove_topic_from_learnt_list(self) -> None:
         self.assertEqual(self._get_all_learnt_topic_ids(
             self.user_id), [])
@@ -1040,6 +1080,11 @@ class LearnerProgressTests(test_utils.GenericTestBase):
             self.user_id, self.TOPIC_ID_1)
         self.assertEqual(self._get_all_learnt_topic_ids(
             self.user_id), [])
+
+        # Removing a topic with an invalid user id has no effect.
+        self.user_id = 'invalid user id'
+        learner_progress_services.remove_topic_from_learnt_list(
+                self.user_id, self.TOPIC_ID_0)
 
     def test_get_all_completed_exp_ids(self) -> None:
         self.assertEqual(learner_progress_services.get_all_completed_exp_ids(
@@ -1761,6 +1806,32 @@ class LearnerProgressTests(test_utils.GenericTestBase):
             incomplete_collection_summaries[0].id, '0_arch_bridges_in_england')
         self.assertEqual(len(incomplete_collection_summaries), 1)
 
+    def test_does_not_add_collection_if_in_complete_or_incomplete_list(
+        self
+    ) -> None:
+        """Ensure collection is not added if already in playlist."""
+        # Add the collection to the playlist.
+        learner_progress_services.mark_collection_as_completed(
+            self.user_id, self.COL_ID_1)
+
+        # Attempt to add the collection to the playlist.
+        belongs_to_completed_or_incomplete_list = (
+            learner_progress_services.add_collection_to_learner_playlist(
+                self.user_id, self.COL_ID_1)
+        )[0]
+
+        self.assertTrue(belongs_to_completed_or_incomplete_list)
+
+        learner_progress_services.mark_collection_as_incomplete(
+            self.user_id, self.COL_ID_1)
+
+        belongs_to_completed_or_incomplete_list = (
+            learner_progress_services.add_collection_to_learner_playlist(
+                self.user_id, self.COL_ID_1)
+        )[0]
+
+        self.assertTrue(belongs_to_completed_or_incomplete_list)
+
     def test_unpublishing_partially_learnt_topic_filters_it_out(self) -> None:
         # Add topics to the partially learnt list.
         learner_progress_services.record_topic_started(
@@ -1869,6 +1940,21 @@ class LearnerProgressTests(test_utils.GenericTestBase):
         # Test that topics to learn doesn't include completed topic.
         self.assertEqual(len(topics_to_learn), 0)
 
+    def test_does_not_add_topic_to_learnt_list_if_already_in_learn_list(
+        self) -> None:
+        """Ensure topic is not added if in learn goal list."""
+        # Mark the topic as already learnt for the user.
+        learner_progress_services.mark_topic_as_learnt(
+            self.user_id, self.TOPIC_ID_3)
+
+        # Attempt to add the topic to the learn goal list.
+        topic_belongs_to_learnt_list = (
+            learner_progress_services.validate_and_add_topic_to_learn_goal(
+                self.user_id, self.TOPIC_ID_3
+        )[0])
+
+        self.assertTrue(topic_belongs_to_learnt_list)
+
     def test_unpublishing_topic_filters_it_out_from_topics_to_learn(
         self
     ) -> None:
@@ -1928,6 +2014,32 @@ class LearnerProgressTests(test_utils.GenericTestBase):
         self.assertEqual(
             exploration_playlist[0].id, '0_en_arch_bridges_in_england')
         self.assertEqual(len(exploration_playlist), 1)
+
+    def test_does_not_add_exploration_if_in_complete_or_incomplete_list(
+        self
+    ) -> None:
+        """Ensure collection is not added if in playlist."""
+        # Add the collection to the playlist.
+        learner_progress_services.mark_exploration_as_completed(
+            self.user_id, self.EXP_ID_0)
+
+        # Attempt to add the collection to the playlist.
+        belongs_to_completed_or_incomplete_list = (
+            learner_progress_services.add_exp_to_learner_playlist(
+                self.user_id, self.EXP_ID_0)
+        )[0]
+
+        self.assertTrue(belongs_to_completed_or_incomplete_list)
+
+        learner_progress_services.mark_exploration_as_incomplete(
+            self.user_id, self.EXP_ID_0, 'state name', 1)
+
+        belongs_to_completed_or_incomplete_list = (
+            learner_progress_services.add_exp_to_learner_playlist(
+                self.user_id, self.EXP_ID_0)
+        )[0]
+
+        self.assertTrue(belongs_to_completed_or_incomplete_list)
 
     def test_republishing_exploration_keeps_it_in_exploration_playlist(
         self
