@@ -30,6 +30,7 @@ from core.domain import learner_playlist_services
 from core.domain import learner_progress_services
 from core.domain import rights_manager
 from core.domain import story_domain
+from core.domain import story_fetchers
 from core.domain import story_services
 from core.domain import subtopic_page_domain
 from core.domain import subtopic_page_services
@@ -2469,3 +2470,127 @@ class LearnerProgressTests(test_utils.GenericTestBase):
         # section.
         self.assertEqual(
             topics_and_stories_progress[1]['partially_learnt_topics'], 1)
+
+        # Unpublish prerequisite topic.
+        topic_services.unpublish_topic(self.TOPIC_ID_3, self.admin_id)
+
+        topics_and_stories_progress = (
+            learner_progress_services.get_topics_and_stories_progress(
+                self.user_id))
+
+        all_topic_summaries = (
+            topics_and_stories_progress[0].all_topic_summaries)
+        untracked_topic_summaries = (
+            topics_and_stories_progress[0].untracked_topic_summaries)
+
+        # Ensure all topic summaries and untracked summaries are empty.
+        self.assertEqual(len(all_topic_summaries), 0)
+        self.assertEqual(len(untracked_topic_summaries), 0)
+
+        # Delete the prerequisite topic.
+        topic_services.delete_topic(self.admin_id, self.TOPIC_ID_3)
+
+        # Get updated and filtered progress
+        # via get_topics_and_stories_progress.
+        user_activity = (
+            learner_progress_services.get_topics_and_stories_progress(
+                self.user_id))
+        all_filtered_summaries = user_activity[0]
+        all_topic_summaries = (
+            all_filtered_summaries.all_topic_summaries)
+
+        # Ensure that all topic summaries are not None after filtering.
+        self.assertIsNotNone(all_topic_summaries)
+
+    def test_get_displayable_story_summaries(self) -> None:
+        # Record completed nodes and mark stories as completed.
+        story_services.record_completed_node_in_story_context(
+            self.user_id, self.STORY_ID_0, 'node_1')
+        learner_progress_services.mark_story_as_completed(
+            self.user_id, self.STORY_ID_0)
+        story_services.record_completed_node_in_story_context(
+            self.user_id, self.STORY_ID_1, 'node_1')
+        learner_progress_services.mark_story_as_completed(
+            self.user_id, self.STORY_ID_1)
+
+        # Verify completed story IDs match expectations.
+        self.assertEqual(
+            learner_progress_services.get_all_completed_story_ids(
+                self.user_id), [self.STORY_ID_0, self.STORY_ID_1])
+
+        # Fetch story summaries for displayable stories.
+        story_ids = [self.STORY_ID_0, self.STORY_ID_1]
+        story_summaries = story_fetchers.get_story_summaries_by_ids(story_ids)
+        displayable_story_summaries = (
+            learner_progress_services.get_displayable_story_summary_dicts(
+                self.user_id,
+                story_summaries
+            )
+        )
+
+        # Verify the correct number of displayable story summaries.
+        self.assertEqual(len(displayable_story_summaries), 2)
+        self.assertEqual(displayable_story_summaries[0]['id'], self.STORY_ID_0)
+        self.assertEqual(displayable_story_summaries[1]['id'], self.STORY_ID_1)
+
+    def test_get_displayable_topics_summaries(self) -> None:
+        # Fetch all topic summaries for displayable topics.
+        topic_summaries = topic_fetchers.get_all_topic_summaries()
+        displayable_topic_summaries = (
+            learner_progress_services.get_displayable_topic_summary_dicts(
+                self.user_id,
+                topic_summaries
+            )
+        )
+
+        # Verify the correct number of displayable topic summaries.
+        self.assertEqual(len(displayable_topic_summaries), 4)
+        self.assertEqual(displayable_topic_summaries[0]['id'], self.TOPIC_ID_0)
+        self.assertEqual(displayable_topic_summaries[1]['id'], self.TOPIC_ID_1)
+
+    def test_get_displayable_collection_story_summaries(self) -> None:
+        # Mark collections as completed or incomplete.
+        learner_progress_services.mark_collection_as_completed(
+            self.user_id, self.COL_ID_0)
+        learner_progress_services.mark_collection_as_incomplete(
+            self.user_id, self.COL_ID_1)
+        learner_progress_services.mark_collection_as_completed(
+            self.user_id, self.COL_ID_3)
+
+        # Verify completed and incomplete collection IDs.
+        self.assertEqual(
+            learner_progress_services.get_all_completed_collection_ids(
+                self.user_id), [self.COL_ID_0, self.COL_ID_3])
+        self.assertEqual(
+            learner_progress_services.get_all_incomplete_collection_ids(
+                self.user_id), [self.COL_ID_1,])
+
+        user_activity = learner_progress_services.get_collection_progress(
+            self.user_id)
+
+        incomplete_collection_summaries = (
+            user_activity[0].incomplete_collection_summaries)
+        completed_collection_summaries = (
+            user_activity[0].completed_collection_summaries)
+
+        # Get displayable summaries for incomplete and completed collections.
+        displayable_incompelete_story_summaries = (
+            learner_progress_services.get_collection_summary_dicts(
+                incomplete_collection_summaries
+            )
+        )
+        displayable_compeleted_story_summaries = (
+            learner_progress_services.get_collection_summary_dicts(
+                completed_collection_summaries
+            )
+        )
+
+        # Verify the number of displayable summaries and their IDs.
+        self.assertEqual(len(displayable_incompelete_story_summaries), 1)
+        self.assertEqual(len(displayable_compeleted_story_summaries), 2)
+        self.assertEqual(
+            displayable_incompelete_story_summaries[0]['id'], self.COL_ID_1)
+        self.assertEqual(
+            displayable_compeleted_story_summaries[0]['id'], self.COL_ID_0)
+        self.assertEqual(
+            displayable_compeleted_story_summaries[1]['id'], self.COL_ID_3)
