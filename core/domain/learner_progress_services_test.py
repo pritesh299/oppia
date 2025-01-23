@@ -1015,7 +1015,9 @@ class LearnerProgressTests(test_utils.GenericTestBase):
         # Removing a collection with an invalid user id has no effect.
         self.user_id = 'invalid user id'
         learner_progress_services.remove_collection_from_completed_list(
-                self.user_id, self.COL_ID_0)
+                self.user_id, self.COL_ID_1)
+        self.assertEqual(self._get_all_completed_collection_ids(
+            self.user_id), [])
 
     def test_remove_story_from_completed_list(self) -> None:
         self.assertEqual(self._get_all_completed_story_ids(
@@ -1051,6 +1053,8 @@ class LearnerProgressTests(test_utils.GenericTestBase):
         self.user_id = 'invalid user id'
         learner_progress_services.remove_story_from_completed_list(
                 self.user_id, self.STORY_ID_0)
+        self.assertEqual(self._get_all_completed_story_ids(
+            self.user_id), [])
 
     def test_remove_topic_from_learnt_list(self) -> None:
         self.assertEqual(self._get_all_learnt_topic_ids(
@@ -1086,6 +1090,8 @@ class LearnerProgressTests(test_utils.GenericTestBase):
         self.user_id = 'invalid user id'
         learner_progress_services.remove_topic_from_learnt_list(
                 self.user_id, self.TOPIC_ID_0)
+        self.assertEqual(self._get_all_completed_story_ids(
+            self.user_id), [])
 
     def test_get_all_completed_exp_ids(self) -> None:
         self.assertEqual(learner_progress_services.get_all_completed_exp_ids(
