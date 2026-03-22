@@ -89,8 +89,26 @@ jobs:
         uses: actions/checkout@v4
       - name: Merge develop and set up dependencies
         uses: ./.github/actions/merge-develop-and-set-up-dependencies
+      - name: DEBUG pip state before generate-build-files
+        run: |
+          echo "=== PIP VERSION BEFORE ==="
+          python -m pip --version
+          echo "=== RESOLVELIB VERSION BEFORE ==="
+          python -c "import pip._vendor.resolvelib; print(pip._vendor.resolvelib.__version__)"
+          echo "=== PIP DEBUG BEFORE ==="
+          python -m pip debug
+        shell: bash
       - name: Generate build files
         uses: ./.github/actions/generate-build-files
+      - name: DEBUG pip state after generate-build-files
+        run: |
+          echo "=== PIP VERSION AFTER ==="
+          python -m pip --version
+          echo "=== RESOLVELIB VERSION AFTER ==="
+          python -c "import pip._vendor.resolvelib; print(pip._vendor.resolvelib.__version__)"
+          echo "=== PIP DEBUG AFTER ==="
+          python -m pip debug
+        shell: bash
   e2e_test:
     needs: [check_test_suites_to_run, build]
     runs-on: ubuntu-22.04
