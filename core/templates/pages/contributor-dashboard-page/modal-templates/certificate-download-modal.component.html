@@ -5,10 +5,9 @@
         Select the time range
       </div>
       <button type="button"
-              class="close oppia-close-button-position"
+              class="btn-close oppia-close-button-position"
               (click)="close()"
               attr.aria-label="Close">
-        <span aria-hidden="true">&times;</span>
       </button>
     </div>
   </div>
@@ -17,11 +16,11 @@
   <div *ngIf="!certificateDownloading">
     <div class="datepicker-container">
       <div class="date-label">From:</div>
-      <input class="datepicker" type="date" [(ngModel)]="fromDate" (change)="validateDate()">
+      <input class="datepicker" type="date" [max]="maxSelectableDate" [(ngModel)]="fromDate" (change)="validateDate()">
     </div>
     <div class="datepicker-container">
       <div class="date-label">To:</div>
-      <input class="datepicker" type="date"[(ngModel)]="toDate" (change)="validateDate()">
+      <input class="datepicker" type="date" [max]="maxSelectableDate" [(ngModel)]="toDate" (change)="validateDate()">
     </div>
     <div class="datepicker-container" *ngIf="errorsFound">
       <span class="date-range-error">{{errorMessage}}</span>
@@ -33,7 +32,7 @@
   </div>
 </div>
 <div class="oppia-certificate-download-modal-footer modal-footer">
-  <button class="btn btn-default" (click)="close()">
+  <button class="btn btn-secondary" (click)="close()">
     Cancel
   </button>
   <button [disabled]="certificateDownloading || disableDownloadButton() || errorsFound"

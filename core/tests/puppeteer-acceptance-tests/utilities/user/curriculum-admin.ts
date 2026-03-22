@@ -21,6 +21,7 @@ import {showMessage} from '../common/show-message';
 import {TopicManager} from './topic-manager';
 import puppeteer from 'puppeteer';
 import {ElementHandle} from 'puppeteer';
+import {ExplorationEditorModal} from '../common/exploration-editor';
 
 const curriculumAdminThumbnailImage =
   testConstants.data.curriculumAdminThumbnailImage;
@@ -42,8 +43,6 @@ const uploadPhotoButton = 'button.e2e-test-photo-upload-submit';
 const photoUploadModal = 'edit-thumbnail-modal';
 const removeQuestionConfirmationButton =
   '.e2e-test-remove-question-confirmation-button';
-
-const dismissWelcomeModalSelector = 'button.e2e-test-dismiss-welcome-modal';
 
 const topicsTab = 'a.e2e-test-topics-tab';
 const desktopTopicSelector = 'a.e2e-test-topic-name';
@@ -179,8 +178,10 @@ const editClassroomTeaserTextInputField =
 const editClassroomUrlFragmentInputField = '.e2e-update-classroom-url-fragment';
 const editClassroomTopicListIntroInputField =
   '.e2e-test-update-classroom-topic-list-intro';
-const classroomThumbnailContainer = '.e2e-test-classroom-thumbnail-container';
-const classroomBannerContainer = '.e2e-test-classroom-banner-container';
+const classroomThumbnailContainer =
+  '.e2e-test-classroom-thumbnail-container .e2e-test-photo-button';
+const classroomBannerContainer =
+  '.e2e-test-classroom-banner-container .e2e-test-photo-button';
 const imageUploaderModal = '.e2e-test-image-uploader-modal';
 const openTopicDropdownButton = '.e2e-test-add-topic-to-classroom-button';
 const topicDropDownFormField = '.e2e-test-classroom-category-dropdown';
@@ -326,7 +327,6 @@ const submitAnswerButton = 'button.e2e-test-submit-answer-button';
 const submitSolutionButton = 'button.e2e-test-submit-solution-button';
 const interactionNameDiv = 'div.oppia-interaction-tile-name';
 const saveQuestionButton = 'button.e2e-test-save-question-button';
-
 export class CurriculumAdmin extends TopicManager {
   /**
    * Moves the classrooms in the order of the given classroom names.
@@ -1698,23 +1698,12 @@ export class CurriculumAdmin extends TopicManager {
   }
 
   /**
-   * Function to dismiss welcome modal
+   * Function to dismiss exploration editor welcome modal.
+   * @param failIfMissing - Whether to fail if the welcome modal is not found.
    */
-  async dismissWelcomeModal(): Promise<void> {
-    try {
-      await this.page.waitForNetworkIdle();
-      await this.page.waitForSelector(dismissWelcomeModalSelector, {
-        visible: true,
-        timeout: 10000,
-      });
-      await this.clickOnElementWithSelector(dismissWelcomeModalSelector);
-      await this.page.waitForSelector(dismissWelcomeModalSelector, {
-        hidden: true,
-      });
-      showMessage('Tutorial pop-up closed successfully.');
-    } catch (error) {
-      showMessage(`welcome modal not found: ${error.message}`);
-    }
+  async dismissWelcomeModal(failIfMissing: boolean = true): Promise<void> {
+    const explorationEditor = new ExplorationEditorModal(this);
+    await explorationEditor.dismissWelcomeModal(failIfMissing);
   }
 
   /**
@@ -2441,6 +2430,29 @@ export class CurriculumAdmin extends TopicManager {
     await this.page.type(addTopicFormFieldInput, topicName);
     await this.clickOnElementWithSelector(topicSelector);
     await this.page.waitForSelector(openTopicDropdownButton);
+
+    // Wait for the topic to appear in the classroom before adding prerequisites.
+    // Increased timeout to 60s because addTopicId makes an async API call that can take time.
+    await this.page.waitForFunction(
+      (
+        topicBoxSelector: string,
+        topicNameSelector: string,
+        expectedTopicName: string
+      ) => {
+        const topicBoxElements = document.querySelectorAll(topicBoxSelector);
+        for (const element of topicBoxElements) {
+          const topicNameElement = element.querySelector(topicNameSelector);
+          if (topicNameElement?.textContent?.trim() === expectedTopicName) {
+            return true;
+          }
+        }
+        return false;
+      },
+      {timeout: 60000},
+      classroomTopicBoxSelector,
+      classroomTopicNameSelector,
+      topicName
+    );
 
     for (const prerequisiteTopic of prerequisiteTopics) {
       await this.addPrerequisiteTopicForATopicInClassroom(

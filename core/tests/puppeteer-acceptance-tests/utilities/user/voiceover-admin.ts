@@ -19,11 +19,10 @@
 import {BaseUser} from '../common/puppeteer-utils';
 import testConstants from '../common/test-constants';
 import {showMessage} from '../common/show-message';
+import {ExplorationEditorModal} from '../common/exploration-editor';
 
 const baseURL = testConstants.URLs.BaseURL;
 const voiceoverAdminURL = testConstants.URLs.VoiceoverAdmin;
-
-const dismissWelcomeModalSelector = 'button.e2e-test-dismiss-welcome-modal';
 
 const editVoiceoverArtistButton = 'span.e2e-test-edit-voice-artist-roles';
 const voiceArtistUsernameInputBox = 'input#newVoicAartistUsername';
@@ -133,18 +132,24 @@ export class VoiceoverAdmin extends BaseUser {
   }
 
   /**
-   * Function to dismiss welcome modal.
+   * Function to dismiss exploration editor welcome modal.
+   * @param failIfMissing - Whether to fail if the welcome modal is not found.
    */
-  async dismissWelcomeModal(): Promise<void> {
-    await this.page.waitForSelector(dismissWelcomeModalSelector, {
-      visible: true,
-    });
-    await this.clickOnElementWithSelector(dismissWelcomeModalSelector);
-    await this.page.waitForSelector(dismissWelcomeModalSelector, {
-      hidden: true,
-    });
+  async dismissWelcomeModal(failIfMissing: boolean = true): Promise<void> {
+    const explorationEditor = new ExplorationEditorModal(this);
+    await explorationEditor.dismissWelcomeModal(failIfMissing);
+  }
 
-    showMessage('Tutorial pop-up is closed.');
+  /**
+   * Function to dismiss welcome modal if it is present. This is useful when
+   * the modal may or may not appear due to race conditions or when it has
+   * already been dismissed earlier in the test flow.
+   */
+  async dismissWelcomeModalIfPresent(): Promise<void> {
+    // The existing dismissWelcomeModal() in this class already handles the
+    // case where the modal is not present (via try/catch), so we just
+    // delegate to it.
+    await this.dismissWelcomeModal(false);
   }
 
   /**
@@ -276,7 +281,7 @@ export class VoiceoverAdmin extends BaseUser {
     voiceArtistUsername: string
   ): Promise<void> {
     await this.navigateToExplorationEditor(explorationId);
-    await this.dismissWelcomeModal();
+    await this.dismissWelcomeModal(false);
     await this.navigateToExplorationSettingsTab();
     await this.addVoiceoverArtistsToExploration([voiceArtistUsername]);
   }

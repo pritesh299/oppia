@@ -141,17 +141,27 @@ describe('Contributor Certificate Download Modal Component', () => {
     ).toHaveBeenCalled();
   });
 
+  it('should set max selectable date on both date pickers', () => {
+    const dateInputs =
+      fixture.nativeElement.querySelectorAll('input[type="date"]');
+
+    expect(dateInputs.length).toBe(2);
+    dateInputs.forEach((input: HTMLInputElement) => {
+      expect(input.max).toBe(component.maxSelectableDate);
+    });
+  });
+
   it('should set errorsFound and errorMessage for To date in the future', () => {
     const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
 
     component.fromDate = '2023-10-01';
-    component.toDate = tomorrow.toISOString().split('T')[0];
+    component.toDate = tomorrow.toDateString();
     component.validateDate();
     expect(component.errorsFound).toBe(true);
     expect(component.errorMessage).toBe(
-      "Please select a 'To' date that is earlier than today's date"
+      "Please select a 'To' date that is not in the future."
     );
   });
 
@@ -166,7 +176,7 @@ describe('Contributor Certificate Download Modal Component', () => {
 
     expect(component.errorsFound).toBeTrue();
     expect(component.errorMessage).toEqual(
-      "Please select a 'To' date that is earlier than " + "today's date"
+      "Please select a 'To' date that is not in the future."
     );
   });
 

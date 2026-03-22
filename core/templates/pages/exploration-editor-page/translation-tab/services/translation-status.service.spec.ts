@@ -63,9 +63,9 @@ describe('Translation status service', () => {
   let ess: ExplorationStatesService;
   let ttams: TranslationTabActiveModeService;
   let tls: TranslationLanguageService;
-  let platformFeatureService: PlatformFeatureService;
   let entityVoiceoversService: EntityVoiceoversService;
   let stateEditorService: StateEditorService;
+  let platformFeatureService: PlatformFeatureService;
 
   let ALL_ASSETS_AVAILABLE_COLOR = '#16A765';
   let FEW_ASSETS_AVAILABLE_COLOR = '#E9B330';
@@ -86,6 +86,10 @@ describe('Translation status service', () => {
           useClass: MockNgbModal,
         },
         {
+          provide: PlatformFeatureService,
+          useClass: MockPlatformFeatureService,
+        },
+        {
           provide: ExplorationDataService,
           useValue: {
             explorationId: 0,
@@ -93,10 +97,6 @@ describe('Translation status service', () => {
               return;
             },
           },
-        },
-        {
-          provide: PlatformFeatureService,
-          useClass: MockPlatformFeatureService,
         },
       ],
     });
@@ -108,8 +108,8 @@ describe('Translation status service', () => {
     stateEditorService = TestBed.inject(StateEditorService);
     entityTranslationsService = TestBed.inject(EntityTranslationsService);
     generateContentIdService = TestBed.inject(GenerateContentIdService);
-    platformFeatureService = TestBed.inject(PlatformFeatureService);
     entityVoiceoversService = TestBed.inject(EntityVoiceoversService);
+    platformFeatureService = TestBed.inject(PlatformFeatureService);
     let currentIndex = 9;
     generateContentIdService.init(
       () => currentIndex++,
@@ -194,6 +194,7 @@ describe('Translation status service', () => {
           },
           confirmed_unclassified_answers: [],
         },
+        inapplicable_skill_misconception_ids: [],
         linked_skill_id: null,
         solicit_answer_details: false,
         classifier_model_id: null,
@@ -253,6 +254,7 @@ describe('Translation status service', () => {
           },
           confirmed_unclassified_answers: [],
         },
+        inapplicable_skill_misconception_ids: [],
         linked_skill_id: null,
         solicit_answer_details: false,
         classifier_model_id: null,
@@ -277,6 +279,7 @@ describe('Translation status service', () => {
           default_outcome: null,
           confirmed_unclassified_answers: [],
         },
+        inapplicable_skill_misconception_ids: [],
         linked_skill_id: null,
         solicit_answer_details: false,
         classifier_model_id: null,
@@ -341,10 +344,11 @@ describe('Translation status service', () => {
         content_8: {
           manual: manualVoiceover8,
         },
-      }
+      },
+      {}
     );
 
-    entityVoiceoversService.init('exp_id', 'exploration', 5);
+    entityVoiceoversService.init('exp_id', 'exploration', 5, 'en');
     entityVoiceoversService.setLanguageCode('en');
     entityVoiceoversService.setActiveLanguageAccentCode('en-US');
     entityVoiceoversService.addEntityVoiceovers('en-US', entityVoiceovers);
@@ -465,9 +469,6 @@ describe('Translation status service', () => {
     );
 
     platformFeatureServiceSpy.and.returnValue({
-      AddVoiceoverWithAccent: {
-        isEnabled: true,
-      },
       AutomaticVoiceoverRegenerationFromExp: {
         isEnabled: false,
       },
@@ -490,10 +491,11 @@ describe('Translation status service', () => {
           manual: voiceover2,
           auto: undefined,
         },
-      }
+      },
+      {}
     );
 
-    entityVoiceoversService.init('exp_id', 'exploration', 5);
+    entityVoiceoversService.init('exp_id', 'exploration', 5, 'en');
     entityVoiceoversService.setLanguageCode('en');
     entityVoiceoversService.addEntityVoiceovers('en-US', entityVoiceovers);
 
@@ -509,13 +511,11 @@ describe('Translation status service', () => {
     expect(tss.NO_ASSETS_AVAILABLE_COLOR).toEqual(color);
 
     platformFeatureServiceSpy.and.returnValue({
-      AddVoiceoverWithAccent: {
-        isEnabled: true,
-      },
       AutomaticVoiceoverRegenerationFromExp: {
         isEnabled: true,
       },
     } as FeatureStatusChecker);
+
     tss.refresh();
     expect(tss.getExplorationContentNotAvailableCount()).toEqual(6);
     color = tss.getActiveStateContentIdStatusColor('content_0');
@@ -822,9 +822,9 @@ describe('Translation status service', () => {
       },
     } as FeatureStatusChecker);
 
-    expect(
-      tss.isAutomaticVoiceoverRegenerationFromExpFeatureEnabled()
-    ).toBeFalse();
+    expect(tss.isAutomaticVoiceoverRegenerationFromExpFeatureEnabled()).toBe(
+      false
+    );
   });
 
   it('should enable voiceover regeneration feature flag', () => {
@@ -834,8 +834,8 @@ describe('Translation status service', () => {
       },
     } as FeatureStatusChecker);
 
-    expect(
-      tss.isAutomaticVoiceoverRegenerationFromExpFeatureEnabled()
-    ).toBeTrue();
+    expect(tss.isAutomaticVoiceoverRegenerationFromExpFeatureEnabled()).toBe(
+      true
+    );
   });
 });
