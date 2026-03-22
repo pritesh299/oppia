@@ -34,6 +34,12 @@ runs:
         key: ${{ runner.os }}-proddeps-${{ hashFiles('/home/runner/work/.pyversion', 'requirements_dev.txt', 'scripts/install_python_dev_dependencies.py') }}
         path: |
           /opt/hostedtoolcache/Python/3.10.16/x64
+      
+    # TEMP: Downgrade pip to reproduce bug #22567
+    - name: Downgrade pip to 24.3.1 to reproduce bug
+      run: |
+        python -m pip install pip==24.3.1
+      shell: bash
 
     # TODO (#22567): Fix pip not working properly when fetched from cache.
     - name: Check pip installation and fix if needed
