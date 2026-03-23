@@ -87,22 +87,32 @@ jobs:
     steps:
       - name: Checkout repository so that local actions can be used
         uses: actions/checkout@v4
-      - name: DEBUG pip state before generate-build-files
-        run: |
-          echo "=== RESOLVELIB BEFORE ==="
-          python -c "import pip._vendor.resolvelib; print(pip._vendor.resolvelib.__version__)"
-          python -m pip debug
-        shell: bash
+
 
       - name: Merge develop and set up dependencies
         uses: ./.github/actions/merge-develop-and-set-up-dependencies
+      - name: DEBUG pip state before generate-build-files
+        run: |
+          echo "=== WHICH PYTHON ==="
+          which python
+          which python3
+          /opt/hostedtoolcache/Python/3.10.16/x64/bin/python -m pip --version
+          echo "=== RESOLVELIB BEFORE ==="
+          /opt/hostedtoolcache/Python/3.10.16/x64/bin/python -c "import pip._vendor.resolvelib; print(pip._vendor.resolvelib.__version__)"
+          echo "=== PIP DEBUG BEFORE ==="
+          /opt/hostedtoolcache/Python/3.10.16/x64/bin/python -m pip debug
+        shell: bash
       - name: Generate build files
         uses: ./.github/actions/generate-build-files
       - name: DEBUG pip state after generate-build-files
         run: |
+          echo "=== WHICH PYTHON ==="
+          which python
+          /opt/hostedtoolcache/Python/3.10.16/x64/bin/python -m pip --version
           echo "=== RESOLVELIB AFTER ==="
-          python -c "import pip._vendor.resolvelib; print(pip._vendor.resolvelib.__version__)"
-          python -m pip debug
+          /opt/hostedtoolcache/Python/3.10.16/x64/bin/python -c "import pip._vendor.resolvelib; print(pip._vendor.resolvelib.__version__)"
+          echo "=== PIP DEBUG AFTER ==="
+          /opt/hostedtoolcache/Python/3.10.16/x64/bin/python -m pip debug
         shell: bash
   e2e_test:
     needs: [check_test_suites_to_run, build]
