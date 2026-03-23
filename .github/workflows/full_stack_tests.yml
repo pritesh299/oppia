@@ -96,14 +96,14 @@ jobs:
 
       - name: Merge develop and set up dependencies
         uses: ./.github/actions/merge-develop-and-set-up-dependencies
+      - name: Generate build files
+        uses: ./.github/actions/generate-build-files
       - name: DEBUG pip state after generate-build-files
         run: |
           echo "=== RESOLVELIB AFTER ==="
           python -c "import pip._vendor.resolvelib; print(pip._vendor.resolvelib.__version__)"
           python -m pip debug
         shell: bash
-      - name: Generate build files
-        uses: ./.github/actions/generate-build-files
   e2e_test:
     needs: [check_test_suites_to_run, build]
     runs-on: ubuntu-22.04
