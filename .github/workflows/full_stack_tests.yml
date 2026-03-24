@@ -25,6 +25,38 @@ concurrency:
          || github.ref || github.run_id }}
   cancel-in-progress: true
 jobs:
+  build:
+      name: Build the app, and store build files as an artifact
+      needs: [check_test_suites_to_run]
+      runs-on: ubuntu-22.04
+      if: ${{ fromJSON(needs.check_test_suites_to_run.outputs.TEST_SUITES_TO_RUN).e2e.count > 0 ||
+              fromJSON(needs.check_test_suites_to_run.outputs.TEST_SUITES_TO_RUN).lighthouse_performance.count > 0 ||
+              fromJSON(needs.check_test_suites_to_run.outputs.TEST_SUITES_TO_RUN).acceptance.count > 0 }}
+      steps:
+        - name: Checkout repository so that local actions can be used
+          uses: actions/checkout@v4
+        - name: Merge develop and set up dependencies
+          uses: ./.github/actions/merge-develop-and-set-up-dependencies
+        - name: DEBUG pip state before generate-build-files
+          run: |
+            echo "=== PIP VERSION BEFORE ==="
+            python -m pip --version
+            echo "=== RESOLVELIB VERSION BEFORE ==="
+            python -c "import pip._vendor.resolvelib; print(pip._vendor.resolvelib.__version__)"
+            echo "=== PIP DEBUG BEFORE ==="
+            python -m pip debug
+          shell: bash
+        - name: Generate build files
+          uses: ./.github/actions/generate-build-files
+        - name: DEBUG pip state after generate-build-files
+          run: |
+            echo "=== PIP VERSION AFTER ==="
+            python -m pip --version
+            echo "=== RESOLVELIB VERSION AFTER ==="
+            python -c "import pip._vendor.resolvelib; print(pip._vendor.resolvelib.__version__)"
+            echo "=== PIP DEBUG AFTER ==="
+            python -m pip debug
+          shell: bash
   # e2e_and_acceptance_coverage:
   #   name: Verify all e2e/acceptance tests are included
   #   runs-on: ubuntu-22.04
@@ -77,38 +109,6 @@ jobs:
   #       with:
   #         name: root-files-mapping
   #         path: root-files-mapping.json
-  build:
-    name: Build the app, and store build files as an artifact
-    needs: [check_test_suites_to_run]
-    runs-on: ubuntu-22.04
-    if: ${{ fromJSON(needs.check_test_suites_to_run.outputs.TEST_SUITES_TO_RUN).e2e.count > 0 ||
-            fromJSON(needs.check_test_suites_to_run.outputs.TEST_SUITES_TO_RUN).lighthouse_performance.count > 0 ||
-            fromJSON(needs.check_test_suites_to_run.outputs.TEST_SUITES_TO_RUN).acceptance.count > 0 }}
-    steps:
-      - name: Checkout repository so that local actions can be used
-        uses: actions/checkout@v4
-      - name: Merge develop and set up dependencies
-        uses: ./.github/actions/merge-develop-and-set-up-dependencies
-      - name: DEBUG pip state before generate-build-files
-        run: |
-          echo "=== PIP VERSION BEFORE ==="
-          python -m pip --version
-          echo "=== RESOLVELIB VERSION BEFORE ==="
-          python -c "import pip._vendor.resolvelib; print(pip._vendor.resolvelib.__version__)"
-          echo "=== PIP DEBUG BEFORE ==="
-          python -m pip debug
-        shell: bash
-      - name: Generate build files
-        uses: ./.github/actions/generate-build-files
-      - name: DEBUG pip state after generate-build-files
-        run: |
-          echo "=== PIP VERSION AFTER ==="
-          python -m pip --version
-          echo "=== RESOLVELIB VERSION AFTER ==="
-          python -c "import pip._vendor.resolvelib; print(pip._vendor.resolvelib.__version__)"
-          echo "=== PIP DEBUG AFTER ==="
-          python -m pip debug
-        shell: bash
   # e2e_test:
   #   needs: [check_test_suites_to_run, build]
   #   runs-on: ubuntu-22.04
