@@ -37,6 +37,11 @@ jobs:
           uses: actions/checkout@v4
         - name: Merge develop and set up dependencies
           uses: ./.github/actions/merge-develop-and-set-up-dependencies
+        - name: Force old pip (simulate old cached state)
+          run: |
+            echo "=== FORCING OLD PIP VERSION ==="
+            python -m pip install pip==24.3.1
+            python -m pip --version
         - name: DEBUG pip state before generate-build-files
           run: |
             echo "=== PIP VERSION BEFORE ==="
